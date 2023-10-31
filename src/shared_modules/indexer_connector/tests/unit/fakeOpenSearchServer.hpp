@@ -41,8 +41,8 @@ public:
      */
     FakeOpenSearchServer(std::string host, int port, std::string health = "green")
         : m_thread(&FakeOpenSearchServer::run, this)
-        , m_host(host)
-        , m_health(health)
+        , m_host(std::move(host))
+        , m_health(std::move(health))
         , m_port(port)
     {
         // Wait until server is ready
