@@ -289,6 +289,8 @@ If ($status -ne "connected")
 {
     Get-Service -Name "Wazuh" | Stop-Service
     write-output "$(Get-Date -format u) - Upgrade failed: Restoring former installation." >> .\upgrade\upgrade.log
+    Copy-Item -Path .\ossec.log -DestinationPath DestinationFilePath .\upgrade\ossec_try_upgrade.log
+    Copy-Item -Path .\ossec.conf -DestinationPath DestinationFilePath .\upgrade\ossec_try_upgrade.conf
 
     write-output "2" | out-file ".\upgrade\upgrade_result" -encoding ascii
 
