@@ -263,6 +263,7 @@ while($process_id -eq $null -And $counter -gt 0)
     $counter--
     Start-Service -Name "Wazuh"
     Start-Sleep 2
+    write-output "$(Get-Date -format u) - Check process status. Counter: $($counter)" >> .\upgrade\upgrade.log
     $process_id = (Get-Process wazuh-agent).id
 }
 write-output "$(Get-Date -format u) - Process ID: $($process_id)." >> .\upgrade\upgrade.log
@@ -281,6 +282,7 @@ while($status -ne "connected"  -And $counter -gt 0)
 {
     $counter--
     Start-Sleep 2
+    write-output "$(Get-Date -format u) - Check agent status. Counter: $($counter)" >> .\upgrade\upgrade.log
     $status = Get-AgentStatus
 }
 Write-Output "$(Get-Date -Format u) - Reading status file: status='$status'." >> .\upgrade\upgrade.log
@@ -289,6 +291,7 @@ If ($status -ne "connected")
 {
     Get-Service -Name "Wazuh" | Stop-Service
     write-output "$(Get-Date -format u) - Upgrade failed: Restoring former installation." >> .\upgrade\upgrade.log
+    write-output "$(Get-Date -format u) - Copy ossec log and conf to upgrade_folder." >> .\upgrade\upgrade.log
     Copy-Item -Path .\ossec.log -DestinationPath DestinationFilePath .\upgrade\ossec_try_upgrade.log
     Copy-Item -Path .\ossec.conf -DestinationPath DestinationFilePath .\upgrade\ossec_try_upgrade.conf
 
