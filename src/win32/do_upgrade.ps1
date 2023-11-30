@@ -6,7 +6,7 @@ $Env:WAZUH_DEF_REG_START_PATH = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion
 $Env:WAZUH_PUBLISHER_VALUE    = "Wazuh, Inc."
 
 # Delete previous upgrade.log
-Remove-Item -Path ".\upgrade\upgrade.log" -ErrorAction SilentlyContinue
+# Remove-Item -Path ".\upgrade\upgrade.log" -ErrorAction SilentlyContinue
 
 # Select powershell
 if (Test-Path "$env:windir\sysnative") {
@@ -291,9 +291,10 @@ If ($status -ne "connected")
 {
     Get-Service -Name "Wazuh" | Stop-Service
     write-output "$(Get-Date -format u) - Upgrade failed: Restoring former installation." >> .\upgrade\upgrade.log
-    write-output "$(Get-Date -format u) - Copy ossec log and conf to upgrade_folder." >> .\upgrade\upgrade.log
-    Copy-Item -Path .\ossec.log -DestinationPath DestinationFilePath .\upgrade\ossec_try_upgrade.log
-    Copy-Item -Path .\ossec.conf -DestinationPath DestinationFilePath .\upgrade\ossec_try_upgrade.conf
+    write-output "$(Get-Date -format u) - $(Get-Location) - Copy ossec log and conf to upgrade_folder." >> .\upgrade\upgrade.log
+    # Saves ossec.log before remove fail update
+    Copy-Item ossec.log .\upgrade\ossec.log.save -force
+    Copy-Item ossec.conf .\upgrade\ossec.conf.save -force
 
     write-output "2" | out-file ".\upgrade\upgrade_result" -encoding ascii
 
@@ -326,7 +327,7 @@ Else
     write-output "$(Get-Date -format u) - New version: $($new_version)." >> .\upgrade\upgrade.log
 }
 
-Remove-Item $Env:WAZUH_BACKUP_DIR -recurse -ErrorAction SilentlyContinue
+# Remove-Item $Env:WAZUH_BACKUP_DIR -recurse -ErrorAction SilentlyContinue
 # Remove-Item -Path ".\upgrade\*"  -Exclude "*.log", "upgrade_result" -ErrorAction SilentlyContinue
 # Remove-Item -Path ".\wazuh-agent*.msi" -ErrorAction SilentlyContinue
 # Remove-Item -Path ".\do_upgrade.ps1" -ErrorAction SilentlyContinue
