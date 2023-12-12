@@ -5,7 +5,7 @@
 """
 This module contain all necessary components (fixtures, classes, methods)to configure the test for its execution.
 """
-
+import botocore
 import pytest
 
 # qa-integration-framework imports
@@ -94,19 +94,33 @@ def fixture_create_log_stream(metadata):
     Args:
         metadata (dict): Metadata to get the parameters.
     """
+
     SKIP_LOG_GROUP_CREATION = [PERMANENT_CLOUDWATCH_LOG_GROUP, FAKE_CLOUDWATCH_LOG_GROUP]
+    print(PERMANENT_CLOUDWATCH_LOG_GROUP, FAKE_CLOUDWATCH_LOG_GROUP)
     log_group_names = [item.strip() for item in metadata['log_group_name'].split(',')]
     for log_group_name in log_group_names:
         if log_group_name in SKIP_LOG_GROUP_CREATION:
             continue
 
+        import random
+        log_group_name += f"-{random.randint(10**3, 10**4 - 1)}"
+
         logger.debug('Creating log group: %s', log_group_name)
-        create_log_group(log_group_name)
+        try:
+            create_log_group(log_group_name)
+        except botocore.ResourceAlreadyExistsException as e:
+            pass
         log_stream = create_log_stream(log_group_name)
         logger.debug('Created log stream "%s" within log group "%s"', log_stream, log_group_name)
-        create_log_events(
-            log_stream=log_stream, log_group=log_group_name, event_number=metadata.get('expected_results', 1)
-        )
+        try:
+            create_log_events(
+                log_stream=log_stream, log_group=log_group_name, event_number=metadata.get('expected_results', 1)
+            )
+        except botocore.errorfactory.ResourceAlreadyExistsException as e:
+            pass
+        except Exception as e:
+            print(e)
+            pass
         logger.debug('Created log events')
         metadata['log_stream'] = log_stream
 
