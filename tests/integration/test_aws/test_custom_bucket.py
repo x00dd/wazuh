@@ -3,41 +3,40 @@
 # This program is free software; you can redistribute it and/or modify it under the terms of GPLv2
 
 """
-This module will contain all cases for the remove from bucket test suite
+This module will contain all cases for the custom bucket test suite
 """
 
 import pytest
 
 # qa-integration-framework imports
 from wazuh_testing import session_parameters
-from wazuh_testing.modules.aws.utils import log_stream_exists, file_exists
 
 # Local module imports
 from . import event_monitor
-from .utils import ERROR_MESSAGE, TestConfigurator, local_internal_options
+from .utils import ERROR_MESSAGE, TIMEOUT, TestConfigurator, local_internal_options
 
 pytestmark = [pytest.mark.server]
 
 # Set test configurator for the module
-configurator = TestConfigurator(module='remove_from_bucket_test_module')
+configurator = TestConfigurator(module='custom_bucket_test_module')
 
-# ---------------------------------------------------- TEST_REMOVE_FROM_BUCKET -----------------------------------------
+# -------------------------------------------- TEST_CUSTOM_BUCKETS_DEFAULTS -------------------------------------------
 # Configure T1 test
-configurator.configure_test(configuration_file='configuration_remove_from_bucket.yaml',
-                            cases_file='cases_remove_from_bucket.yaml')
+configurator.configure_test(configuration_file='custom_bucket_configuration.yaml',
+                            cases_file='cases_bucket_custom.yaml')
 
 
 @pytest.mark.tier(level=0)
 @pytest.mark.parametrize('configuration, metadata',
                          zip(configurator.test_configuration_template, configurator.metadata),
                          ids=configurator.cases_ids)
-def test_remove_from_bucket(
-    configuration, metadata, mark_cases_as_skipped, upload_and_delete_file_to_s3, load_wazuh_basic_configuration,
-    set_wazuh_configuration, clean_s3_cloudtrail_db, configure_local_internal_options_function,
-    truncate_monitored_files, restart_wazuh_function, file_monitoring
+def test_custom_bucket_defaults(configuration, metadata, load_wazuh_basic_configuration, set_wazuh_configuration,
+                                configure_local_internal_options_function, truncate_monitored_files,
+                                restart_wazuh_function, file_monitoring
 ):
     """
-    description: The uploaded file was removed after the execution.
+    description: Test the AWS S3 custom bucket module is invoked with the expected parameters and no error occurs.
+
     test_phases:
         - setup:
             - Load Wazuh light configuration.
@@ -47,11 +46,13 @@ def test_remove_from_bucket(
             - Restart wazuh-manager service to apply configuration changes.
         - test:
             - Check in the ossec.log that a line has appeared calling the module with correct parameters.
-            - Check that the uploaded log was removed by the module after the execution.
+            - Check in the ossec.log that no errors occurs.
         - teardown:
             - Truncate wazuh logs.
             - Restore initial configuration, both ossec.conf and local_internal_options.conf.
-    wazuh_min_version: 4.6.0
+
+    wazuh_min_version: 4.7.0
+
     parameters:
         - configuration:
             type: dict
@@ -68,42 +69,36 @@ def test_remove_from_bucket(
         - set_wazuh_configuration:
             type: fixture
             brief: Apply changes to the ossec.conf configuration.
-        - clean_s3_cloudtrail_db:
-            type: fixture
-            brief: Delete the DB file before and after the test execution.
         - configure_local_internal_options_function:
             type: fixture
             brief: Apply changes to the local_internal_options.conf configuration.
         - truncate_monitored_files:
             type: fixture
             brief: Truncate wazuh logs.
-        - restart_wazuh_daemon_function:
+        - restart_wazuh_function:
             type: fixture
             brief: Restart the wazuh service.
         - file_monitoring:
             type: fixture
             brief: Handle the monitoring of a specified file.
+
     assertions:
         - Check in the log that the module was called with correct parameters.
-        - Check in the bucket that the uploaded log was removed.
+        - Check in the log that no errors occurs.
+
     input_description:
         - The `configuration_defaults` file provides the module configuration for this test.
         - The `cases_defaults` file provides the test cases.
     """
-    bucket_name = metadata['bucket_name']
-    path = metadata.get('path')
     parameters = [
         'wodles/aws/aws-s3',
-        '--bucket', bucket_name,
-        '--remove',
+        '--subscriber', 'buckets',
+        '--queue', metadata['sqs_name'],
         '--aws_profile', 'qa',
-        '--type', metadata['bucket_type'],
         '--debug', '2'
     ]
-
-    if path is not None:
-        parameters.insert(6, path)
-        parameters.insert(6, '--trail_prefix')
+    log_header = 'Launching S3 Subscriber Command: '
+    expected_log = log_header + " ".join(parameters)
 
     # Check AWS module started
     log_monitor.start(
@@ -116,12 +111,10 @@ def test_remove_from_bucket(
     # Check command was called correctly
     log_monitor.start(
         timeout=session_parameters.default_timeout,
-        callback=event_monitor.callback_detect_aws_module_called(parameters)
+        callback=event_monitor.make_aws_callback(expected_log, prefix='^.*')
     )
 
     assert log_monitor.callback_result is not None, ERROR_MESSAGE['incorrect_parameters']
-
-    assert not file_exists(filename=metadata['uploaded_file'], bucket_name=bucket_name)
 
     # Detect any ERROR message
     log_monitor.start(
@@ -132,23 +125,24 @@ def test_remove_from_bucket(
     assert log_monitor.callback_result is None, ERROR_MESSAGE['error_found']
 
 
-# ---------------------------------------------------- TEST_REMOVE_LOG_STREAM ------------------------------------------
+# -------------------------------------------- TEST_CUSTOM_BUCKETS_LOGS -------------------------------------------
 # Configure T2 test
-configurator.configure_test(configuration_file='configuration_remove_log_stream.yaml',
-                            cases_file='cases_remove_log_streams.yaml')
+configurator.configure_test(configuration_file='custom_bucket_configuration.yaml',
+                            cases_file='cases_bucket_custom_logs.yaml')
 
 
 @pytest.mark.tier(level=0)
 @pytest.mark.parametrize('configuration, metadata',
                          zip(configurator.test_configuration_template, configurator.metadata),
                          ids=configurator.cases_ids)
-def test_remove_log_stream(
-    configuration, metadata, create_log_stream, load_wazuh_basic_configuration, set_wazuh_configuration,
-    clean_aws_services_db, configure_local_internal_options_function, truncate_monitored_files, restart_wazuh_function,
-    file_monitoring
+def test_custom_bucket_logs(configuration, metadata, load_wazuh_basic_configuration, set_wazuh_configuration,
+                            configure_local_internal_options_function, truncate_monitored_files,
+                            restart_wazuh_function, file_monitoring, upload_and_delete_file_to_s3
 ):
     """
-    description: The created log stream was removed after the execution.
+    description: Test the AWS S3 custom bucket module is invoked with the expected parameters and retrieve
+    the messages from the SQS Queue.
+
     test_phases:
         - setup:
             - Load Wazuh light configuration.
@@ -156,13 +150,18 @@ def test_remove_log_stream(
             - Apply custom settings in local_internal_options.conf.
             - Truncate wazuh logs.
             - Restart wazuh-manager service to apply configuration changes.
+            - Uploads a file to the S3 Bucket.
         - test:
-            - Check in the ossec.log that a line has appeared calling the module with correct parameters.
-            - Check that the created log stream was removed by the module after the execution.
+            - Check in the log that the module was called with correct parameters.
+            - Check that the module retrieved a message from the SQS Queue.
+            - Check that the module processed a message from the SQS Queue.
         - teardown:
             - Truncate wazuh logs.
             - Restore initial configuration, both ossec.conf and local_internal_options.conf.
-    wazuh_min_version: 4.6.0
+            - Deletes the file created in the S3 Bucket.
+
+    wazuh_min_version: 4.7.0
+
     parameters:
         - configuration:
             type: dict
@@ -170,49 +169,51 @@ def test_remove_log_stream(
         - metadata:
             type: dict
             brief: Get metadata from the module.
-        - create_log_stream:
+        - upload_and_delete_file_to_s3:
             type: fixture
-            brief: Create a log stream with events for the day of execution.
+            brief: Upload a file to S3 bucket for the day of the execution.
         - load_wazuh_basic_configuration:
             type: fixture
             brief: Load basic wazuh configuration.
         - set_wazuh_configuration:
             type: fixture
             brief: Apply changes to the ossec.conf configuration.
-        - clean_aws_services_db:
-            type: fixture
-            brief: Delete the DB file before and after the test execution.
         - configure_local_internal_options_function:
             type: fixture
             brief: Apply changes to the local_internal_options.conf configuration.
         - truncate_monitored_files:
             type: fixture
             brief: Truncate wazuh logs.
-        - restart_wazuh_daemon_function:
+        - restart_wazuh_function:
             type: fixture
             brief: Restart the wazuh service.
         - file_monitoring:
             type: fixture
             brief: Handle the monitoring of a specified file.
+        - upload_and_delete_file_to_s3:
+            type: fixture
+            brief: Upload a file to S3 bucket for the day of the execution.
+
     assertions:
         - Check in the log that the module was called with correct parameters.
-        - Check in the log group that the created stream was removed.
+        - Check that the module retrieved a message from the SQS Queue.
+        - Check that the module processed a message from the SQS Queue.
+
     input_description:
         - The `configuration_defaults` file provides the module configuration for this test.
         - The `cases_defaults` file provides the test cases.
     """
-    service_type = metadata['service_type']
-    log_group_name = metadata['log_group_name']
+    sqs_name = metadata['sqs_name']
 
     parameters = [
         'wodles/aws/aws-s3',
-        '--service', service_type,
+        '--subscriber', 'buckets',
+        '--queue', sqs_name,
         '--aws_profile', 'qa',
-        '--regions', 'us-east-1',
-        '--aws_log_groups', log_group_name,
-        '--remove-log-streams',
         '--debug', '2'
     ]
+    log_header = 'Launching S3 Subscriber Command: '
+    expected_log = log_header + " ".join(parameters)
 
     # Check AWS module started
     log_monitor.start(
@@ -225,12 +226,29 @@ def test_remove_log_stream(
     # Check command was called correctly
     log_monitor.start(
         timeout=session_parameters.default_timeout,
-        callback=event_monitor.callback_detect_aws_module_called(parameters)
+        callback=event_monitor.make_aws_callback(expected_log, prefix='^.*')
     )
 
     assert log_monitor.callback_result is not None, ERROR_MESSAGE['incorrect_parameters']
 
-    assert not log_stream_exists(log_stream=metadata['log_stream'], log_group=log_group_name)
+    retrieve_pattern = fr'.*Retrieving messages from: {sqs_name}'
+    message_pattern = fr'.*The message is: .*'
+
+    # Check if the message was retrieved from the queue
+    log_monitor.start(
+        timeout=TIMEOUT[10],
+        callback=event_monitor.make_aws_callback(retrieve_pattern)
+    )
+
+    assert log_monitor.callback_result is not None, ERROR_MESSAGE['failed_sqs_message_retrieval']
+
+    # Check if it processes the created file
+    log_monitor.start(
+        timeout=TIMEOUT[10],
+        callback=event_monitor.make_aws_callback(message_pattern)
+    )
+
+    assert log_monitor.callback_result is not None, ERROR_MESSAGE['failed_message_handling']
 
     # Detect any ERROR message
     log_monitor.start(
