@@ -1,7 +1,6 @@
 import importlib
 import json
-import logging
-import os
+from os.path import join, dirname, realpath
 import socket
 import sys
 from datetime import datetime
@@ -14,13 +13,13 @@ import pytz
 from dateutil.parser import parse
 from requests import HTTPError
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))  # noqa: E501
+sys.path.append(join(dirname(realpath(__file__)), '..'))  # noqa: E501
 
 with patch('azure-logs.orm'):
     azure = importlib.import_module("azure-logs")
 
-TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
-TEST_AUTHENTICATION_PATH = os.path.join(TEST_DATA_PATH, 'authentication_files')
+TEST_DATA_PATH = join(dirname(realpath(__file__)), 'data')
+TEST_AUTHENTICATION_PATH = join(TEST_DATA_PATH, 'authentication_files')
 
 PAST_DATE = "2022-01-01T12:00:00.000000Z"
 PRESENT_DATE = "2022-06-15T12:00:00.000000Z"
@@ -53,19 +52,6 @@ def create_mocked_blob(blob_name: str, last_modified: datetime = None, content_l
         blob.properties.content_length = content_length
 
     return blob
-
-
-@pytest.mark.parametrize('debug_level', [0, 1, 2, 3])
-@patch('azure-logs.logging.basicConfig')
-def test_set_logger(mock_logging, debug_level):
-    """Test set_logger sets the expected logging verbosity level."""
-    azure.args = MagicMock(debug_level=debug_level)
-    azure.set_logger()
-    mock_logging.assert_called_with(level=azure.LOG_LEVELS.get(debug_level, logging.INFO),
-                                    format=azure.LOGGING_MSG_FORMAT,
-                                    datefmt=azure.LOGGING_DATE_FORMAT)
-    assert logging.getLogger('azure').level == azure.LOG_LEVELS.get(debug_level, logging.WARNING).real
-    assert logging.getLogger("urllib3").level == logging.ERROR.real
 
 
 def test_get_script_arguments(capsys):
@@ -136,7 +122,7 @@ def test_arg_valid_blob_extension(arg_string):
 ])
 def test_read_auth_file(file_name, fields):
     """Test read_auth_file correctly handles valid authentication files."""
-    credentials = azure.read_auth_file(auth_path=os.path.join(TEST_AUTHENTICATION_PATH, file_name), fields=fields)
+    credentials = azure.read_auth_file(auth_path=join(TEST_AUTHENTICATION_PATH, file_name), fields=fields)
     assert isinstance(credentials, tuple)
     for i in range(len(fields)):
         assert credentials[i] == f"{fields[i]}_value"
@@ -149,11 +135,11 @@ def test_read_auth_file(file_name, fields):
     "invalid_authentication_file_2",
     "invalid_authentication_file_3"
 ])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 def test_read_auth_file_ko(mock_logging, file_name):
     """Test read_auth_file correctly handles invalid authentication files."""
     with pytest.raises(SystemExit) as err:
-        azure.read_auth_file(auth_path=os.path.join(TEST_AUTHENTICATION_PATH, file_name), fields=("field", "field"))
+        azure.read_auth_file(auth_path=join(TEST_AUTHENTICATION_PATH, file_name), fields=("field", "field"))
     assert err.value.code == 1
     mock_logging.assert_called_once()
 
@@ -180,7 +166,7 @@ def test_update_row_object(mock_get, mock_update, min_date, max_date):
         mock_update.assert_not_called()
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.orm.get_row', side_effect=AttributeError)
 def test_update_row_object_ko(mock_get, mock_logging):
     """Test update_row_object handles ORM errors as expected."""
@@ -190,7 +176,7 @@ def test_update_row_object_ko(mock_get, mock_logging):
     mock_logging.assert_called_once()
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.orm.update_row', side_effect=azure.orm.AzureORMError)
 @patch('azure-logs.orm.get_row', return_value=MagicMock(min_processed_date=PRESENT_DATE,
                                                         max_processed_date=PRESENT_DATE))
@@ -214,7 +200,7 @@ def test_create_new_row(mock_orm):
     mock_orm.add_row.assert_called_with(row=item)
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.orm.add_row', side_effect=azure.orm.AzureORMError)
 def test_create_new_row_ko(mock_add_row, mock_logging):
     """Test create_new_row raises an error if when attempting to add a invalid row object."""
@@ -259,7 +245,7 @@ def test_start_log_analytics(mock_auth, mock_token, mock_build, mock_get_logs, a
                                      headers={"Authorization": f"Bearer {token}"}, md5_hash=md5_hash)
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.get_log_analytics_events', side_effect=HTTPError)
 @patch('azure-logs.build_log_analytics_query')
 @patch('azure-logs.get_token')
@@ -272,7 +258,7 @@ def test_start_log_analytics_ko(mock_auth, mock_token, mock_build, mock_get_logs
     mock_logging.assert_called_once()
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 def test_start_log_analytics_ko_credentials(mock_logging):
     """Test start_log_analytics stops its execution if no valid credentials are provided."""
     azure.args = MagicMock(la_tenant_domain=None)
@@ -315,7 +301,7 @@ def test_build_log_analytics_query(mock_get, mock_create, mock_datetime, min_dat
     assert expected_str in result["query"]
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.orm.get_row', side_effect=azure.orm.AzureORMError)
 def test_build_log_analytics_query_ko(mock_get, mock_logging):
     """Test build_log_analytics_query handles ORM exceptions."""
@@ -331,7 +317,7 @@ def test_build_log_analytics_query_ko(mock_get, mock_logging):
     ("log_analytics_events_no_results", None),
     ("log_analytics_events_empty", None)
 ])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.update_row_object')
 @patch('azure-logs.iter_log_analytics_events')
 @patch('azure-logs.get_time_position')
@@ -341,7 +327,7 @@ def test_get_log_analytics_events(mock_get, mock_position, mock_iter, mock_updat
     field was present."""
     azure.args = MagicMock(la_query="test_query")
     m = MagicMock(status_code=200)
-    with open(os.path.join(TEST_DATA_PATH, file)) as f:
+    with open(join(TEST_DATA_PATH, file)) as f:
         try:
             events = json.loads(f.read())
             m.json.return_value = events
@@ -397,7 +383,7 @@ def test_iter_log_analytics_events(mock_send):
     """Test iter_log_analytics_events iterates through the columns and rows to build the events and send them to the
     socket."""
     azure.args = MagicMock(la_tag="tag")
-    with open(os.path.join(TEST_DATA_PATH, "log_analytics_events")) as f:
+    with open(join(TEST_DATA_PATH, "log_analytics_events")) as f:
         events = json.loads(f.read())
         columns = events['tables'][0]['columns']
         rows = events['tables'][0]['rows']
@@ -440,7 +426,7 @@ def test_start_graph(mock_auth, mock_token, mock_build, mock_graph, auth_path, g
     mock_graph.assert_called_with(url=url, headers={'Authorization': f'Bearer {token}'}, md5_hash=md5_hash)
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.get_graph_events', side_effect=HTTPError)
 @patch('azure-logs.build_graph_url')
 @patch('azure-logs.get_token')
@@ -452,7 +438,7 @@ def test_start_graph_ko(mock_auth, mock_token, mock_build, mock_get, mock_loggin
     mock_logging.assert_called_once()
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 def test_start_graph_ko_credentials(mock_logging):
     """Test start_graph stops its execution if no valid credentials are provided."""
     azure.args = MagicMock(graph_tenant_domain=None)
@@ -468,7 +454,7 @@ def test_start_graph_ko_credentials(mock_logging):
     (PAST_DATE, FUTURE_DATE, PRESENT_DATE, False),
     (PAST_DATE, PAST_DATE, PRESENT_DATE, True),
 ])
-@patch('azure-logs.logging.info')
+@patch('azure-logs.azure_logger.info')
 @patch('azure-logs.offset_to_datetime')
 @patch('azure-logs.create_new_row')
 @patch('azure-logs.orm.get_row', return_value=None)
@@ -504,7 +490,7 @@ def test_build_graph_url(mock_get, mock_create, mock_datetime, mock_logging, min
     assert expected_str in result
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.orm.get_row', side_effect=azure.orm.AzureORMError)
 def test_build_graph_url_ko(mock_get, mock_logging):
     """Test build_log_analytics_query handles ORM exceptions."""
@@ -521,7 +507,7 @@ def test_get_graph_events(mock_get, mock_update, mock_send):
     """Test get_graph_events recursively request the data using the specified url and process the values present in the
     response."""
     def load_events(path):
-        with open(os.path.join(TEST_DATA_PATH, path)) as f:
+        with open(join(TEST_DATA_PATH, path)) as f:
             return json.loads(f.read())
 
     azure.args = MagicMock(graph_query="test_query", graph_tag="tag")
@@ -547,7 +533,7 @@ def test_get_graph_events(mock_get, mock_update, mock_send):
 
 
 @pytest.mark.parametrize('status_code', [400, 500])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.get')
 def test_get_graph_events_error_responses(mock_get, mock_logging, status_code):
     """Test get_graph_events handles invalid responses from the request module."""
@@ -602,7 +588,7 @@ def test_start_storage(mock_auth, mock_blob, mock_get_row, mock_create, mock_get
     ("*", azure.AzureException),
     ("*", None)
 ])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.create_new_row', side_effect=azure.orm.AzureORMError)
 @patch('azure-logs.orm.get_row', return_value=None)
 @patch('azure-logs.BlockBlobService')
@@ -625,7 +611,7 @@ def test_start_storage_ko(mock_blob, mock_get, mock_create, mock_logging, contai
     mock_logging.assert_called_once()
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 def test_start_storage_ko_credentials(mock_logging):
     """Test start_storage stops its execution if no valid credentials are provided."""
     azure.args = MagicMock(storage_auth_path=None, account_name=None, account_key=None)
@@ -682,7 +668,7 @@ def test_get_blobs(mock_send, mock_update, blob_date, min_date, max_date, desire
     else:
         test_file = "storage_events_plain"
 
-    with open(os.path.join(TEST_DATA_PATH, test_file)) as f:
+    with open(join(TEST_DATA_PATH, test_file)) as f:
         contents = f.read()
         blob_service.get_blob_to_text.return_value = MagicMock(content=contents)
 
@@ -780,7 +766,7 @@ def test_get_blobs_only_with_prefix(mock_send, mock_update):
     )
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 def test_get_blobs_list_blobs_ko(mock_logging):
     """Test get_blobs_list_blobs handles exceptions from 'list_blobs'."""
     m = MagicMock()
@@ -793,7 +779,7 @@ def test_get_blobs_list_blobs_ko(mock_logging):
 
 
 @pytest.mark.parametrize('exception', [ValueError, azure.AzureException, azure.AzureHttpError(message="", status_code="")])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.update_row_object')
 def test_get_blobs_blob_data_ko(mock_update, mock_logging, exception):
     """Test get_blobs_list_blobs handles exceptions from 'get_blob_to_text'."""
@@ -814,7 +800,7 @@ def test_get_blobs_blob_data_ko(mock_update, mock_logging, exception):
 
 
 @pytest.mark.parametrize('exception', [json.JSONDecodeError, TypeError, KeyError])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.loads')
 @patch('azure-logs.update_row_object')
 def test_get_blobs_json_ko(mock_update, mock_loads, mock_logging, exception):
@@ -869,7 +855,7 @@ def test_get_token(mock_post):
     (None, '', []),
     (None, None, [])
 ])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.post')
 def test_get_token_ko(mock_post, mock_logging, exception, error_msg, error_codes):
     """Test get_token handles exceptions when the 'access_token' field is not present in the response."""
@@ -896,7 +882,7 @@ def test_send_message(mock_connect, mock_send, mock_close):
 
 
 @pytest.mark.parametrize('error_code', [111, 90, 1])
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.socket.close')
 @patch('azure-logs.socket.send')
 @patch('azure-logs.socket.connect')
@@ -929,7 +915,7 @@ def test_offset_to_datetime(mock_time, offset, expected_date):
     assert result == parse(expected_date)
 
 
-@patch('azure-logs.logging.error')
+@patch('azure-logs.azure_logger.error')
 @patch('azure-logs.datetime')
 def test_offset_to_datetime_ko(mock_time, mock_logging):
     """Test offset_to_datetime handles the exception when an invalid offset format was provided."""
