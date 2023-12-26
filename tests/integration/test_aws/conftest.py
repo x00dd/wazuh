@@ -7,6 +7,7 @@ This module contain all necessary components (fixtures, classes, methods)to conf
 """
 import botocore
 import pytest
+from uuid import uuid4
 
 # qa-integration-framework imports
 from wazuh_testing.logger import logger
@@ -15,16 +16,19 @@ from wazuh_testing.constants.aws import (
     PERMANENT_CLOUDWATCH_LOG_GROUP,
 )
 from wazuh_testing.modules.aws.utils import (
+    #create_bucket,
     create_log_events,
     create_log_group,
     create_log_stream,
+    #delete_bucket,
     delete_log_group,
     delete_log_stream,
     delete_file,
+    delete_s3_db,
+    delete_services_db,
     file_exists,
     upload_file
 )
-from wazuh_testing.modules.aws.utils import delete_s3_db, delete_services_db
 from wazuh_testing.utils.services import control_service
 
 
@@ -48,6 +52,47 @@ def restart_wazuh_function_without_exception(daemon=None):
 
 
 # S3 fixtures
+
+@pytest.fixture(scope="session", autouse=True)
+def create_session_uuid():
+    uuid = str(uuid4())[:8]
+    return uuid
+
+
+@pytest.fixture(scope="session", autouse=True)
+def delete_buckets():
+    bucket_list = []
+
+    yield bucket_list
+
+    for bucket in bucket_list:
+        #delete_bucket(bucket)
+        pass
+
+
+@pytest.fixture()
+def create_bucket(create_session_uuid, bucket_list, metadata):
+    """
+
+    Parameters
+    ----------
+        bucket_list
+        create_session_uuid
+        metadata
+
+    Returns
+    -------
+
+    """
+    bucket_name = metadata['bucket_name']
+    bucket_name += f"-{create_session_uuid}"
+
+    create_bucket(bucket_name=bucket_name)
+    metadata['bucket_name'] = bucket_name
+
+    yield
+
+    bucket_list.append(bucket_name)
 
 @pytest.fixture
 def upload_and_delete_file_to_s3(metadata):
