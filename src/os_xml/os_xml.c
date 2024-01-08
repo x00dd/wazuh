@@ -288,7 +288,7 @@ static int _ReadElem(unsigned int parent, OS_XML *_lxml, unsigned int recursion_
 
     // consume all the spaces, tabs or new line characters
     while ((c = xml_getc_fun(_lxml->fp, _lxml)) != cmp) {
-        if(isspace(c)) {
+        if (isspace(c)) {
             continue;
         } else {
             break;
@@ -296,12 +296,12 @@ static int _ReadElem(unsigned int parent, OS_XML *_lxml, unsigned int recursion_
     }
 
     // check that the next character is '<'
-    if(c == cmp) {
+    if (c == cmp) {
         retval = LEOF;
         xml_error(_lxml, "XMLERR: Empty content.");
         goto end;
     }
-    else if(c != _R_CONFS) {
+    else if (c != _R_CONFS) {
         xml_error(_lxml, "XMLERR: Malformed XML does not start with '<'");
         goto end;
     }
