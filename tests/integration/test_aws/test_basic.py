@@ -32,7 +32,8 @@ configurator.configure_test(configuration_file='bucket_configuration_defaults.ya
                          ids=configurator.cases_ids)
 def test_bucket_defaults(
         configuration, metadata, load_wazuh_basic_configuration, set_wazuh_configuration, clean_s3_cloudtrail_db,
-        configure_local_internal_options_function, truncate_monitored_files, restart_wazuh_function, file_monitoring
+        configure_local_internal_options_function, truncate_monitored_files, restart_wazuh_function, file_monitoring,
+        create_test_bucket
 ):
     """
     description: The module is invoked with the expected parameters and no error occurs.
