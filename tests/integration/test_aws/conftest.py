@@ -19,11 +19,8 @@ from wazuh_testing.modules.aws.utils import (
     create_log_stream,
     delete_bucket,
     delete_log_group,
-    delete_log_stream,
-    delete_file,
     delete_s3_db,
     delete_services_db,
-    file_exists,
     upload_bucket_file,
     delete_resources,
     generate_file
@@ -64,8 +61,8 @@ def create_session_id():
     """
 
     # Create and splice an unique id
-    uuid = str(uuid4())[:8]
-    return uuid
+    session_id = str(uuid4())[:8]
+    return session_id
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -108,21 +105,25 @@ def create_and_delete_resources_list():
 
 
 @pytest.fixture()
-def create_test_bucket(uuid: str, resources_list: list, metadata: dict):
+def create_test_bucket(create_session_id: str, create_and_delete_resources_list: list, metadata: dict):
     """Create a bucket.
 
     Parameters
     ----------
-        uuid (str): Test session id.
-        resources_list (list): Resources list.
+        create_session_id (str): Test session id.
+        create_and_delete_resources_list (list): Resources list.
         metadata (dict): Bucket information.
 
     Returns
     -------
         None
     """
+    # Set variables from fixture
+    test_session_id = create_session_id
+    resources_list = create_and_delete_resources_list
+
     # Get bucket information and add session id
-    bucket_name = metadata['bucket_name'] + f"-{uuid}"
+    bucket_name = metadata['bucket_name'] + f"-{test_session_id}"
     bucket_type = metadata['bucket_type']
 
     try:
@@ -148,7 +149,7 @@ def create_test_bucket(uuid: str, resources_list: list, metadata: dict):
             "bucket_type": bucket_type,
             "error": str(error)
         })
-        pass
+        raise error
 
     except Exception as error:
         logger.error({
@@ -157,7 +158,7 @@ def create_test_bucket(uuid: str, resources_list: list, metadata: dict):
             "bucket_type": bucket_type,
             "error": str(error)
         })
-        pass
+        raise error
 
 
 @pytest.fixture
@@ -211,21 +212,25 @@ def upload_file_to_bucket(metadata):
 
 
 @pytest.fixture()
-def create_test_log_group(uuid: str, resources_list: list, metadata: dict):
+def create_test_log_group(create_session_id: str, create_and_delete_resources_list: list, metadata: dict):
     """Create a bucket.
 
     Parameters
     ----------
-        uuid (str): Test session id.
-        resources_list (list): Resources list.
+        create_session_id (str): Test session id.
+        create_and_delete_resources_list (list): Resources list.
         metadata (dict): Log group information.
 
     Returns
     -------
         None
     """
+    # Set variables from fixture
+    test_session_id = create_session_id
+    resources_list = create_and_delete_resources_list
+
     # Get log group information and add session id
-    log_group_name = metadata["log_group_name"] + f"-{uuid}"
+    log_group_name = metadata["log_group_name"] + f"-{test_session_id}"
 
     try:
         # Create log group
