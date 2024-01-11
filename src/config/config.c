@@ -314,7 +314,7 @@ int ReadConfig(int modules, const char *cfgfile, void *d1, void *d2)
     }
 
     node = OS_GetElementsbyNode(&xml, NULL);
-    if (!node) {
+    if (node == NULL || node[0] == NULL) {
         return (0);
     }
 
