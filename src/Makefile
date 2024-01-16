@@ -987,7 +987,7 @@ endif
 
 #### OpenSSL ##########
 
-OPENSSL_FLAGS = enable-weak-ssl-ciphers no-shared
+OPENSSL_FLAGS = aix64-gcc enable-weak-ssl-ciphers no-shared
 
 ifeq (${uname_M}, i386)
 ifeq ($(findstring BSD,${uname_S}), BSD)
