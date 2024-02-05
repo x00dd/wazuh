@@ -326,10 +326,10 @@ def get_script_arguments():
     parser.add_argument('-d', '--debug', action='store', dest='debug', default=0, help='Enable debug')
     parser.add_argument('-a', '--access_key', dest='access_key', default=None,
                         help='S3 Access key credential. '
-                             f'{constants.DEPRECATED_MESSAGE.format(name="access_key", release="4.4", url=constants.AWS_CREDENTIALS_URL)}')
+                             f'{constants.AWS_AUTH_DEPRECATED_MESSAGE.format(name="access_key", release="4.4", url=constants.AWS_CREDENTIALS_URL)}')
     parser.add_argument('-k', '--secret_key', dest='secret_key', default=None,
                         help='S3 Access key credential. '
-                             f'{constants.DEPRECATED_MESSAGE.format(name="secret_key", release="4.4", url=constants.AWS_CREDENTIALS_URL)}')
+                             f'{constants.AWS_AUTH_DEPRECATED_MESSAGE.format(name="secret_key", release="4.4", url=constants.AWS_CREDENTIALS_URL)}')
     # Beware, once you delete history it's gone.
     parser.add_argument('-R', '--remove', action='store_true', dest='deleteFile',
                         help='Remove processed files from the AWS S3 bucket', default=False)

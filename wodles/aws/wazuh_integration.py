@@ -32,11 +32,8 @@ sys.path.insert(0, path.dirname(path.dirname(path.abspath(__file__))))
 import utils
 import constants
 
-DEPRECATED_AWS_INTEGRATION_TABLES = {'log_progress', 'trail_progress'}
-DEFAULT_AWS_INTEGRATION_GOV_REGIONS = {'us-gov-east-1', 'us-gov-west-1'}
-SERVICES_REQUIRING_REGION = {'inspector', 'cloudwatchlogs'}
-WAZUH_DEFAULT_RETRY_CONFIGURATION = {constants.RETRY_ATTEMPTS_KEY: 10, constants.RETRY_MODE_BOTO_KEY: 'standard'}
-WAZUH_AWS_MESSAGE_HEADER = "1:Wazuh-AWS:"
+
+
 
 
 class WazuhIntegration:
@@ -153,7 +150,7 @@ class WazuhIntegration:
 
                 else:
                     # Set retry config
-                    retries = copy.deepcopy(WAZUH_DEFAULT_RETRY_CONFIGURATION)
+                    retries = copy.deepcopy(constants.WAZUH_DEFAULT_RETRY_CONFIGURATION)
                     aws_tools.debug(
                         "No retries configuration found in profile config. Generating default configuration for "
                         f"retries: mode: {retries['mode']} - max_attempts: {retries['max_attempts']}",
@@ -178,7 +175,7 @@ class WazuhIntegration:
 
         else:
             # Set retries parameters to avoid a throttling exception
-            args['config'] = botocore.config.Config(retries=copy.deepcopy(WAZUH_DEFAULT_RETRY_CONFIGURATION))
+            args['config'] = botocore.config.Config(retries=copy.deepcopy(constants.WAZUH_DEFAULT_RETRY_CONFIGURATION))
             aws_tools.debug(
                 f"Generating default configuration for retries: {constants.RETRY_MODE_BOTO_KEY} "
                 f"{args['config'].retries[constants.RETRY_MODE_BOTO_KEY]} - "
@@ -192,8 +189,8 @@ class WazuhIntegration:
         conn_args = {}
 
         if access_key is not None and secret_key is not None:
-            print(constants.DEPRECATED_MESSAGE.format(name="access_key and secret_key", release="4.4",
-                                                      url=constants.AWS_CREDENTIALS_URL))
+            print(constants.AWS_AUTH_DEPRECATED_MESSAGE.format(name="access_key and secret_key", release="4.4",
+                                                               url=constants.AWS_CREDENTIALS_URL))
             conn_args['aws_access_key_id'] = access_key
             conn_args['aws_secret_access_key'] = secret_key
 
@@ -201,11 +198,11 @@ class WazuhIntegration:
             conn_args['profile_name'] = profile
 
             # set region name
-        if region and service_name in SERVICES_REQUIRING_REGION:
+        if region and service_name in constants.SERVICES_REQUIRING_REGION:
             conn_args['region_name'] = region
         else:
             # it is necessary to set region_name for GovCloud regions
-            conn_args['region_name'] = region if region in DEFAULT_AWS_INTEGRATION_GOV_REGIONS else None
+            conn_args['region_name'] = region if region in constants.DEFAULT_AWS_INTEGRATION_GOV_REGIONS else None
 
         boto_session = boto3.Session(**conn_args)
         service_name = "logs" if service_name == "cloudwatchlogs" else service_name
@@ -294,7 +291,7 @@ class WazuhIntegration:
             aws_tools.debug(json_msg, 3)
             s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
             s.connect(self.wazuh_queue)
-            encoded_msg = f"{WAZUH_AWS_MESSAGE_HEADER}{json_msg if dump_json else msg}".encode()
+            encoded_msg = f"{constants.WAZUH_AWS_MESSAGE_HEADER}{json_msg if dump_json else msg}".encode()
             # Logs warning if event is bigger than max size
             if len(encoded_msg) > utils.MAX_EVENT_SIZE:
                 aws_tools.debug(f"Event size exceeds the maximum allowed limit of {utils.MAX_EVENT_SIZE} bytes.", 1)
@@ -528,6 +525,6 @@ class WazuhAWSDatabase(WazuhIntegration):
 
     def delete_deprecated_tables(self):
         tables = set([t[0] for t in self.db_cursor.execute(self.sql_find_table_names).fetchall()])
-        for table in tables.intersection(DEPRECATED_AWS_INTEGRATION_TABLES):
+        for table in tables.intersection(constants.DEPRECATED_AWS_INTEGRATION_TABLES):
             aws_tools.debug(f"Removing deprecated '{table} 'table from {self.db_path}", 2)
             self.db_cursor.execute(self.sql_drop_table.format(table_name=table))

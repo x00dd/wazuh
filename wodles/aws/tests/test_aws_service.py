@@ -14,6 +14,7 @@ import aws_utils as utils
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 import wazuh_integration
+import constants
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'services'))
 import aws_service
@@ -86,6 +87,6 @@ def test_aws_service_format_message(mock_wazuh_integration, mock_wazuh_aws_datab
     output_msg = {'source': 'service_name', 'createdAt': TEST_DATETIME_STR, 'updatedAt': TEST_DATETIME_STR,
                   'key': 'value'}
     instance = utils.get_mocked_service(only_logs_after=utils.TEST_ONLY_LOGS_AFTER)
-    expected_msg = copy.deepcopy(aws_service.AWS_SERVICE_MSG_TEMPLATE)
+    expected_msg = copy.deepcopy(constants.AWS_SERVICE_MSG_TEMPLATE)
     expected_msg['aws'] = output_msg
     assert instance.format_message(input_msg) == expected_msg
