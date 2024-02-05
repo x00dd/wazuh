@@ -12,7 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
 import aws_utils as utils
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'buckets_s3'))
-import aws_bucket
+import constants
 import guardduty
 
 SAMPLE_EVENT_1 = {'key1': 'value1', 'key2': 'value2'}
@@ -161,7 +161,7 @@ def test_aws_guardduty_bucket_iter_regions_and_accounts(mock_wazuh_aws_integrati
 @patch('aws_bucket.AWSCustomBucket.__init__')
 def test_aws_guardduty_bucket_send_event(mock_custom_bucket, mock_type, mock_reformat, mock_send):
     """Test 'send_event' method makes the necessary calls in order to send the event to Analysisd."""
-    event = copy.deepcopy(aws_bucket.AWS_BUCKET_MSG_TEMPLATE)
+    event = copy.deepcopy(constants.AWS_BUCKET_MSG_TEMPLATE)
     instance = utils.get_mocked_bucket(class_=guardduty.AWSGuardDutyBucket)
     instance.send_event(event)
     mock_reformat.assert_called_with(event)
@@ -207,7 +207,7 @@ def test_aws_guardduty_bucket_reformat_msg(mock_custom_bucket, mock_type, mock_r
     fields: dict
         Dictionary part of the event to be reformatted.
     """
-    event = copy.deepcopy(aws_bucket.AWS_BUCKET_MSG_TEMPLATE)
+    event = copy.deepcopy(constants.AWS_BUCKET_MSG_TEMPLATE)
     event['aws'].update({'source': 'guardduty'})
     event['aws'].update(fields)
     instance = utils.get_mocked_bucket(class_=guardduty.AWSGuardDutyBucket)

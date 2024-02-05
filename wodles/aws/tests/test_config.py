@@ -6,9 +6,9 @@ import pytest
 import os
 import sys
 import copy
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import botocore
 
@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
 import aws_utils as utils
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'buckets_s3'))
-import aws_bucket
+import constants
 import config
 
 TEST_CONFIG_SCHEMA = "schema_config_test.sql"
@@ -121,7 +121,7 @@ def test_aws_config_bucket_reformat_msg(mock_reformat,
     security_groups: str or dict
         Security groups values for the securityGroups key.
     """
-    event = copy.deepcopy(aws_bucket.AWS_BUCKET_MSG_TEMPLATE)
+    event = copy.deepcopy(constants.AWS_BUCKET_MSG_TEMPLATE)
     event['aws'].update(
         {
             'configuration': {

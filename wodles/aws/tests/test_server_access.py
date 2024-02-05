@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
 import aws_utils as utils
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'buckets_s3'))
-import aws_bucket
+import constants
 import server_access
 
 TEST_LOG_SERVER_ACCESS_FULL_PATH = '2021-04-29-09-12-25-F123456789012345'
@@ -179,9 +179,9 @@ def test_aws_server_access_check_bucket_handles_exceptions_when_empty_bucket(moc
 
 
 @pytest.mark.parametrize('error_code, exit_code', [
-    (aws_bucket.THROTTLING_EXCEPTION_ERROR_CODE, utils.THROTTLING_ERROR_CODE),
-    (aws_bucket.INVALID_CREDENTIALS_ERROR_CODE, utils.INVALID_CREDENTIALS_ERROR_CODE),
-    (aws_bucket.INVALID_REQUEST_TIME_ERROR_CODE, utils.INVALID_REQUEST_TIME_ERROR_CODE),
+    (constants.THROTTLING_EXCEPTION_ERROR_CODE, utils.THROTTLING_ERROR_CODE),
+    (constants.INVALID_CREDENTIALS_ERROR_CODE, utils.INVALID_CREDENTIALS_ERROR_CODE),
+    (constants.INVALID_REQUEST_TIME_ERROR_CODE, utils.INVALID_REQUEST_TIME_ERROR_CODE),
     ("OtherClientError", utils.UNKNOWN_ERROR_CODE)
 ])
 @patch('wazuh_integration.WazuhIntegration.get_sts_client')

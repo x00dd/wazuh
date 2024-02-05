@@ -21,6 +21,7 @@ import aws_utils as utils
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 import wazuh_integration
 import aws_tools
+import constants
 
 TEST_METADATA_SCHEMA = "schema_metadata_test.sql"
 TEST_METADATA_DEPRECATED_TABLES_SCHEMA = "schema_metadata_deprecated_tables_test.sql"
@@ -53,7 +54,7 @@ def test_wazuh_integration_initializes_properly(mock_version, mock_path, mock_cl
 
 @patch('wazuh_integration.botocore')
 @pytest.mark.parametrize('file_exists, options, retry_attempts, retry_mode',
-                         [(True, [aws_tools.RETRY_ATTEMPTS_KEY, aws_tools.RETRY_MODE_BOTO_KEY], 5, 'standard'),
+                         [(True, [constants.RETRY_ATTEMPTS_KEY, constants.RETRY_MODE_BOTO_KEY], 5, 'standard'),
                           (True, ['other_option'], None, None),
                           (False, None, None, None)]
                          )
@@ -84,10 +85,10 @@ def test_default_config(mock_botocore, file_exists, options, retry_attempts, ret
 
                 config = wazuh_integration.WazuhIntegration.default_config(profile=utils.TEST_AWS_PROFILE)
 
-            if aws_tools.RETRY_ATTEMPTS_KEY in profile_config or aws_tools.RETRY_MODE_CONFIG_KEY in profile_config:
+            if constants.RETRY_ATTEMPTS_KEY in profile_config or constants.RETRY_MODE_CONFIG_KEY in profile_config:
                 retries = {
-                        aws_tools.RETRY_ATTEMPTS_KEY: retry_attempts,
-                        aws_tools.RETRY_MODE_BOTO_KEY: retry_mode
+                        constants.RETRY_ATTEMPTS_KEY: retry_attempts,
+                        constants.RETRY_MODE_BOTO_KEY: retry_mode
                     }
             else:
                 retries = wazuh_integration.WAZUH_DEFAULT_RETRY_CONFIGURATION
@@ -109,7 +110,7 @@ def test_default_config(mock_botocore, file_exists, options, retry_attempts, ret
     (None, None, utils.TEST_AWS_PROFILE),
     (None, None, utils.TEST_AWS_PROFILE),
 ])
-@pytest.mark.parametrize('region', list(wazuh_integration.DEFAULT_GOV_REGIONS) + ['us-east-1', None])
+@pytest.mark.parametrize('region', list(wazuh_integration.DEFAULT_AWS_INTEGRATION_GOV_REGIONS) + ['us-east-1', None])
 @pytest.mark.parametrize('service_name', list(wazuh_integration.SERVICES_REQUIRING_REGION) + ['other'])
 def test_wazuh_integration_get_client_authentication(access_key, secret_key, profile, region, service_name):
     """Test `get_client` function uses the different authentication parameters properly.
@@ -141,7 +142,7 @@ def test_wazuh_integration_get_client_authentication(access_key, secret_key, pro
     if region and service_name in wazuh_integration.SERVICES_REQUIRING_REGION:
         expected_conn_args['region_name'] = region
     else:
-        expected_conn_args['region_name'] = region if region in wazuh_integration.DEFAULT_GOV_REGIONS else None
+        expected_conn_args['region_name'] = region if region in wazuh_integration.DEFAULT_AWS_INTEGRATION_GOV_REGIONS else None
 
     with patch('wazuh_integration.utils.find_wazuh_path', return_value=utils.TEST_WAZUH_PATH), \
             patch('wazuh_integration.utils.get_wazuh_version', return_value=utils.WAZUH_VERSION), \
@@ -290,7 +291,7 @@ def test_wazuh_integration_send_msg(dump_json):
         mock_socket.return_value = m
         instance.send_msg(utils.TEST_MESSAGE, dump_json=dump_json)
         mock_socket.assert_called_once()
-        m.send.assert_called_with(f"{wazuh_integration.MESSAGE_HEADER}{msg}".encode())
+        m.send.assert_called_with(f"{wazuh_integration.WAZUH_AWS_MESSAGE_HEADER}{msg}".encode())
         m.close.assert_called_once()
 
 
@@ -544,14 +545,14 @@ def test_wazuh_aws_database_delete_deprecated_tables(custom_database):
     instance.db_connector = custom_database
     instance.db_cursor = instance.db_connector.cursor()
 
-    for table in wazuh_integration.DEPRECATED_TABLES:
+    for table in wazuh_integration.DEPRECATED_AWS_INTEGRATION_TABLES:
         assert instance.db_cursor.execute(instance.sql_find_table, {'name': table}).fetchone()[0]
     assert instance.db_cursor.execute(instance.sql_find_table, {'name': METADATA_TABLE_NAME}).fetchone()[0]
 
     instance.delete_deprecated_tables()
 
     # The deprecated tables were deleted
-    for table in wazuh_integration.DEPRECATED_TABLES:
+    for table in wazuh_integration.DEPRECATED_AWS_INTEGRATION_TABLES:
         assert not instance.db_cursor.execute(instance.sql_find_table, {'name': table}).fetchone()
     # The metadata table is still present
     assert instance.db_cursor.execute(instance.sql_find_table, {'name': METADATA_TABLE_NAME}).fetchone()[0]
