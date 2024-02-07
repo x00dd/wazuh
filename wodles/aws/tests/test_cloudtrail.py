@@ -11,8 +11,10 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
 import aws_utils as utils
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'buckets_s3'))
-import constants
 import cloudtrail
+
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+import constants
 
 
 @patch('aws_bucket.AWSLogsBucket.__init__')

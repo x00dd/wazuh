@@ -66,9 +66,9 @@ def test_arg_valid_key_raises_exception_when_invalid_format_provided():
 
 
 @pytest.mark.parametrize('arg_string', [
-    utils.TEST_ACCOUNT_ID,
-    f'{utils.TEST_ACCOUNT_ID},{utils.TEST_ACCOUNT_ID}',
-    f'{utils.TEST_ACCOUNT_ID},{utils.TEST_ACCOUNT_ID},{utils.TEST_ACCOUNT_ID}',
+    constants.TEST_ACCOUNT_ID,
+    f'{constants.TEST_ACCOUNT_ID},{constants.TEST_ACCOUNT_ID}',
+    f'{constants.TEST_ACCOUNT_ID},{constants.TEST_ACCOUNT_ID},{constants.TEST_ACCOUNT_ID}',
     None
 ])
 def test_arg_valid_accountid(arg_string: str or None):
@@ -85,9 +85,9 @@ def test_arg_valid_accountid(arg_string: str or None):
 
 
 @pytest.mark.parametrize('arg_string', [
-    utils.TEST_ACCOUNT_ID[:-1],
-    f'{utils.TEST_ACCOUNT_ID},{utils.TEST_ACCOUNT_ID[:-1]}',
-    f'{utils.TEST_ACCOUNT_ID},{utils.TEST_ACCOUNT_ID},123456789abc'
+    constants.TEST_ACCOUNT_ID[:-1],
+    f'{constants.TEST_ACCOUNT_ID},{constants.TEST_ACCOUNT_ID[:-1]}',
+    f'{constants.TEST_ACCOUNT_ID},{constants.TEST_ACCOUNT_ID},123456789abc'
 ])
 def test_arg_valid_accountid_raises_exception_when_invalid_account_provided(arg_string):
     """Test 'arg_valid_accountid' function raises an 'ArgumentTypeError' error
@@ -103,9 +103,9 @@ def test_arg_valid_accountid_raises_exception_when_invalid_account_provided(arg_
 
 
 @pytest.mark.parametrize('arg_string', [
-    utils.TEST_REGION,
-    f'{utils.TEST_REGION},{utils.TEST_REGION}',
-    f'{utils.TEST_REGION},{utils.TEST_REGION},{utils.TEST_REGION}',
+    constants.TEST_REGION,
+    f'{constants.TEST_REGION},{constants.TEST_REGION}',
+    f'{constants.TEST_REGION},{constants.TEST_REGION},{constants.TEST_REGION}',
     None
 ])
 def test_arg_valid_regions(arg_string):
