@@ -16,7 +16,7 @@ import aws_tools
 DEFAULT_DATABASE_NAME = "aws_services"
 DEFAULT_TABLENAME = "aws_services"
 
-AWS_SERVICE_MSG_TEMPLATE = {'integration': 'aws', 'aws': ''}
+AWS_SERVICE_MSG_TEMPLATE = {'integration': 'aws', 'aws': {'log_info': {'aws_account_alias': ''}}}
 
 
 class AWSService(wazuh_integration.WazuhAWSDatabase):
@@ -41,6 +41,8 @@ class AWSService(wazuh_integration.WazuhAWSDatabase):
         Service name to extract logs from.
     only_logs_after : str
         Date after which obtain logs.
+    account_alias: str
+        Alias of the AWS account where the bucket is.
     region : str
         Region name.
     db_table_name : str
@@ -58,7 +60,7 @@ class AWSService(wazuh_integration.WazuhAWSDatabase):
     """
 
     def __init__(self, reparse: bool, access_key: str, secret_key: str, profile: str, iam_role_arn: str,
-                 service_name: str, only_logs_after: str, region: str, db_table_name: str = DEFAULT_TABLENAME,
+                 service_name: str, only_logs_after: str, account_alias: str, region: str, db_table_name: str = DEFAULT_TABLENAME,
                  discard_field: str = None, discard_regex: str = None, sts_endpoint: str = None,
                  service_endpoint: str = None,
                  iam_role_duration: str = None, **kwargs):
@@ -81,6 +83,7 @@ class AWSService(wazuh_integration.WazuhAWSDatabase):
         # get account ID
         self.account_id = self.sts_client.get_caller_identity().get('Account')
         self.only_logs_after = only_logs_after
+        self.account_alias = account_alias
 
         # SQL queries for services
         self.sql_create_table = """
@@ -156,3 +159,26 @@ class AWSService(wazuh_integration.WazuhAWSDatabase):
         formatted_msg = copy.deepcopy(AWS_SERVICE_MSG_TEMPLATE)
         formatted_msg['aws'] = msg
         return formatted_msg
+    
+
+    def get_alert_msg(self, aws_account_id, event, error_msg=""):
+        def remove_none_fields(event):
+            for key, value in list(event.items()):
+                if isinstance(value, dict):
+                    remove_none_fields(event[key])
+                elif value is None:
+                    del event[key]
+
+        # error_msg will only have a value when event is None and vice versa
+        msg = copy.deepcopy(AWS_SERVICE_MSG_TEMPLATE)
+        msg['aws']['log_info'].update({
+            'aws_account_alias': self.account_alias
+        })
+        if event:
+            remove_none_fields(event)
+            msg['aws'].update(event)
+        elif error_msg:
+            msg['error_msg'] = error_msg
+        return msg
+
+
