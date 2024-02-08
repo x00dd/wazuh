@@ -35,6 +35,8 @@ class AWSCloudWatchLogs(aws_service.AWSService):
         IAM Role.
     only_logs_after : str
         Date after which obtain logs.
+    account_alias: str
+        Alias of the AWS account where the service is.
     region : str
         Region where the logs are located.
     aws_log_groups : str

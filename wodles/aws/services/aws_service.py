@@ -42,7 +42,7 @@ class AWSService(wazuh_integration.WazuhAWSDatabase):
     only_logs_after : str
         Date after which obtain logs.
     account_alias: str
-        Alias of the AWS account where the bucket is.
+        Alias of the AWS account where the service is.
     region : str
         Region name.
     db_table_name : str
