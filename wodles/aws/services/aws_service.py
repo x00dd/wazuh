@@ -42,7 +42,7 @@ class AWSService(wazuh_integration.WazuhAWSDatabase):
     only_logs_after : str
         Date after which obtain logs.
     account_alias: str
-        Alias of the AWS account where the service is.
+        AWS account alias.
     region : str
         Region name.
     db_table_name : str
@@ -160,25 +160,3 @@ class AWSService(wazuh_integration.WazuhAWSDatabase):
         formatted_msg['aws'] = msg
         return formatted_msg
     
-
-    def get_alert_msg(self, aws_account_id, event, error_msg=""):
-        def remove_none_fields(event):
-            for key, value in list(event.items()):
-                if isinstance(value, dict):
-                    remove_none_fields(event[key])
-                elif value is None:
-                    del event[key]
-
-        # error_msg will only have a value when event is None and vice versa
-        msg = copy.deepcopy(AWS_SERVICE_MSG_TEMPLATE)
-        msg['aws']['log_info'].update({
-            'aws_account_alias': self.account_alias
-        })
-        if event:
-            remove_none_fields(event)
-            msg['aws'].update(event)
-        elif error_msg:
-            msg['error_msg'] = error_msg
-        return msg
-
-

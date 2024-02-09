@@ -294,7 +294,7 @@ def get_aws_service_parameters(db_table_name: str = TEST_TABLE_NAME, service_nam
     only_logs_after : str
         Date after which obtain logs.
     account_alias: str
-        Alias of the AWS account where the service is.
+        AWS account alias.
     region : str
         Region name.
     aws_log_groups : str
