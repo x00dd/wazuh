@@ -47,118 +47,7 @@ def restart_wazuh_function_without_exception(daemon=None):
     control_service('stop', daemon=daemon)
 
 
-"""Session fixtures"""
-
-
-@pytest.fixture(scope="session", autouse=True)
-def create_session_id():
-    """Create a unique shortened uuid to use as test session identifier.
-
-    Returns
-    -------
-        str: shortened uuid.
-
-    """
-
-    # Create and splice an unique id
-    session_id = str(uuid4())[:8]
-    return session_id
-
-
-@pytest.fixture(scope="session", autouse=True)
-def create_and_delete_resources_list():
-    """Create a resource list to track all resources created throughout test execution and deletes them upon completion
-
-    Returns
-    -------
-        None
-    """
-    # Create resource list
-    resources_list = []
-
-    yield resources_list
-
-    # Delete all resources created during execution
-    for resource in resources_list:
-        try:
-            delete_resources(resource)
-        except ClientError as error:
-            logger.error({
-                "message": "Client error deleting resource",
-                "resource_name": resource,
-                "error": str(error)
-            })
-            pass
-
-        except Exception as error:
-            logger.error({
-                "message": "Broad error creating bucket",
-                "resource_name": resource,
-                "error": str(error)
-            })
-            pass
-
-    logger.info('All resources deleted')
-
-
 """S3 fixtures"""
-
-
-@pytest.fixture()
-def create_test_bucket(create_session_id: str, create_and_delete_resources_list: list, metadata: dict):
-    """Create a bucket.
-
-    Parameters
-    ----------
-        create_session_id (str): Test session id.
-        create_and_delete_resources_list (list): Resources list.
-        metadata (dict): Bucket information.
-
-    Returns
-    -------
-        None
-    """
-    # Set variables from fixture
-    test_session_id = create_session_id
-    resources_list = create_and_delete_resources_list
-
-    # Get bucket information and add session id
-    bucket_name = metadata['bucket_name'] + f"-{test_session_id}"
-    bucket_type = metadata['bucket_type']
-
-    try:
-        # Create bucket
-        create_bucket(bucket_name=bucket_name, bucket_type=bucket_type)
-        logger.debug(f"Created new bucket: type {bucket_type}, name {bucket_name}")
-
-        # Set new bucket name for the test execution
-        metadata['bucket_name'] = bucket_name
-
-        # Create resource dict
-        resource = {
-            "type": "bucket",
-            "name": bucket_name
-        }
-        # Append created bucket to resource list
-        resources_list.append(resource)
-
-    except ClientError as error:
-        logger.error({
-            "message": "Client error creating bucket",
-            "bucket_name": bucket_name,
-            "bucket_type": bucket_type,
-            "error": str(error)
-        })
-        raise error
-
-    except Exception as error:
-        logger.error({
-            "message": "Broad error creating bucket",
-            "bucket_name": bucket_name,
-            "bucket_type": bucket_type,
-            "error": str(error)
-        })
-        raise error
 
 
 @pytest.fixture
@@ -245,7 +134,7 @@ def create_test_log_group(create_session_id: str, create_and_delete_resources_li
 
         # Append created log group to resources list
         resources_list.append(log_group_name)
-    
+
     except ClientError as error:
         logger.error({
             "message": "Client error creating log group",
@@ -357,7 +246,9 @@ def create_test_events(metadata: dict):
         pass
 
 
-# DB fixtures
+"""DB fixtures"""
+
+
 @pytest.fixture
 def clean_s3_cloudtrail_db():
     """Delete the DB file before and after the test execution"""
