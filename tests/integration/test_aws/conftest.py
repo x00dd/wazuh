@@ -6,9 +6,9 @@
 This module contain all necessary components (fixtures, classes, methods) to configure the test for its execution.
 """
 import pytest
-from uuid import uuid4
 from time import time
 from botocore.exceptions import ClientError
+from functools import wraps
 
 # qa-integration-framework imports
 from wazuh_testing.logger import logger
@@ -26,6 +26,7 @@ from wazuh_testing.modules.aws.utils import (
     generate_file
 )
 from wazuh_testing.utils.services import control_service
+from .utils import TestConfigurator
 
 
 @pytest.fixture
@@ -46,9 +47,29 @@ def restart_wazuh_function_without_exception(daemon=None):
 
     control_service('stop', daemon=daemon)
 
-
 """S3 fixtures"""
 
+
+# @pytest.fixture()
+# def create_test_bucket(create_session_id: str, create_and_delete_resources_list: list, metadata: dict):
+#     """Create a bucket.
+#
+#     Parameters
+#     ----------
+#         create_session_id (str): Test session id.
+#         create_and_delete_resources_list (list): Resources list.
+#         metadata (dict): Bucket information.
+#
+#     Returns
+#     -------
+#         None
+#     """
+#     # Set variables from fixture
+#
+#
+#     # Get bucket information and add session id
+#     metadata['bucket_name'] += f"-{test_session_id}"
+#
 
 @pytest.fixture
 def upload_file_to_bucket(metadata):

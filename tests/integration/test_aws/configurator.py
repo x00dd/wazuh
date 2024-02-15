@@ -8,6 +8,7 @@
 """
 from os.path import join
 from uuid import uuid4
+from botocore.exceptions import ClientError
 
 # qa-integration-framework imports
 from wazuh_testing.utils.configuration import (
@@ -27,6 +28,8 @@ from wazuh_testing.modules.aws.utils import (
     delete_resources,
     generate_file
 )
+from wazuh_testing.logger import logger
+
 
 # Local imports
 from .utils import TEST_DATA_PATH, TEMPLATE_DIR, TEST_CASES_DIR
@@ -82,7 +85,7 @@ class TestConfigurator:
     def _set_session_id(self) -> None:
         """Create and set the test session id."""
         self._session_id = str(uuid4())[:8]
-        print(f"This test session id is: {self._session_id}")
+        logger.info(f"This test session id is: {self._session_id}")
 
     def configure_test(self, configuration_file="", cases_file="") -> None:
         """
@@ -93,9 +96,6 @@ class TestConfigurator:
         - configuration_file (str): The name of the configuration file.
         - cases_file (str): The name of the test cases file.
         """
-        # Set configuration path
-        configuration_path = join(TEST_DATA_PATH, TEMPLATE_DIR, self.module)
-
         # Set test cases yaml path
         cases_yaml_path = join(TEST_DATA_PATH, TEST_CASES_DIR, self.module, cases_file)
 
@@ -137,13 +137,13 @@ class TestConfigurator:
             lines = file.readlines()  # Read all lines from the file
 
             for line in lines:
-                if 'BUCKET_NAME' in line or 'bucket_name' in line:
-                    # Extract the bucket name, modify it, and write the modified line
+                if 'BUCKET_NAME' in line.upper() or 'LOG_STREAM' in line.upper():
+                    # Extract the resource name, modify it, and write the modified line
                     parts = line.split(':')
                     if len(parts) > 1:
-                        bucket_name = parts[1].strip() + self._session_id
-                        resources.add(bucket_name)  # Add only the modified bucket name to the set
-                        modified_line = parts[0] + ': ' + bucket_name + '\n'
+                        resource_name = parts[1].strip() + self._session_id
+                        resources.add(resource_name)  # Add only the modified bucket name to the set
+                        modified_line = parts[0] + ': ' + resource_name + '\n'
                     else:
                         modified_line = line
                     file.write(modified_line)
@@ -168,24 +168,64 @@ class TestConfigurator:
             configuration_path = join(TEST_DATA_PATH, TEMPLATE_DIR, self.module, configuration_file)
 
             # load configuration template
-            self.test_configuration_template = load_configuration_template(
+            self._test_configuration_template = load_configuration_template(
                 configuration_path,
                 parameters,
                 self._metadata
             )
 
     def _create_resources(self, resources: set) -> None:
-        """Create AWS resources for test execution
+        """Create AWS resources for test execution.
 
          Parameters
          ----------
          - resources (set): Set containing resources to create.
 
          """
-        pass
+        for resource in resources:
+            try:
+                # Create bucket
+                create_bucket(bucket_name=resource)
+                logger.debug(f"Created new bucket: {resource}")
+
+            except ClientError as error:
+                logger.error({
+                    "message": "Client error creating bucket",
+                    "bucket_name": v,
+                    "error": str(error)
+                })
+                raise error
+
+            except Exception as error:
+                logger.error({
+                    "message": "Broad error creating bucket",
+                    "bucket_name": resource,
+                    "error": str(error)
+                })
+                raise error
 
     def _delete_resources(self, resources):
-        pass
+        for resource in resources:
+            try:
+                # Create bucket
+                delete_bucket(bucket_name=resource)
+                logger.debug(f"Created new bucket: {resource}")
+
+            except ClientError as error:
+                logger.error({
+                    "message": "Client error creating bucket",
+                    "bucket_name": resource,
+                    "error": str(error)
+                })
+                raise error
+
+            except Exception as error:
+                logger.error({
+                    "message": "Broad error creating bucket",
+                    "bucket_name": resource,
+                    "error": str(error)
+                })
+                raise error
 
 
 def modify_file(test_data_path: str) -> str:
