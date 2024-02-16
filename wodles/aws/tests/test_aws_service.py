@@ -95,3 +95,20 @@ def test_aws_service_format_message(mock_wazuh_integration, mock_wazuh_aws_datab
     expected_msg['aws'] = output_msg
     assert instance.format_message(input_msg) == expected_msg
     
+   
+@pytest.mark.parametrize('event', [SAMPLE_EVENT_1, SAMPLE_EVENT_2, None])
+@patch('wazuh_integration.WazuhIntegration.get_sts_client')
+def test_aws_service_get_alert_msg(mock_sts, event):
+    """Test 'get_alert_msg' method returns messages with the valid format."""
+    instance = utils.get_mocked_service(account_alias=utils.TEST_ACCOUNT_ALIAS)
+    expected_error_message = "error message"
+    expected_msg = copy.deepcopy(aws_service.AWS_SERVICE_MSG_TEMPLATE)
+    expected_msg['aws']['log_info'].update({
+        'aws_account_alias': instance.account_alias
+    })
+    if event:
+        expected_msg['aws'].update({k: v for k, v in event.items() if v is not None})
+    else:
+        expected_msg['error_msg'] = expected_error_message
+
+    assert instance.get_alert_msg(utils.TEST_ACCOUNT_ID, event, error_msg=expected_error_message) == expected_msg

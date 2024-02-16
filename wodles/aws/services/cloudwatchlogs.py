@@ -325,7 +325,8 @@ class AWSCloudWatchLogs(aws_service.AWSService):
                                   f'The event will be processed.')
                     aws_tools.debug('The message is "{}"'.format(event_msg), 2)
                     aws_tools.debug('The message\'s timestamp is {}'.format(event["timestamp"]), 3)
-                    self.send_msg(event_msg, dump_json=False)
+                    alert_msg = self.get_alert_msg(log_group, event_msg)
+                    self.send_msg(alert_msg, dump_json=False)
                     sent_events += 1
 
                     if min_start_time is None:
