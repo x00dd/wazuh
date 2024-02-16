@@ -5,10 +5,11 @@
 """
 This module contain all necessary components (fixtures, classes, methods) to configure the test for its execution.
 """
+
 import pytest
 from time import time
 from botocore.exceptions import ClientError
-from functools import wraps
+from uuid import uuid4
 
 # qa-integration-framework imports
 from wazuh_testing.logger import logger
@@ -26,7 +27,6 @@ from wazuh_testing.modules.aws.utils import (
     generate_file
 )
 from wazuh_testing.utils.services import control_service
-from .utils import TestConfigurator
 
 
 @pytest.fixture
@@ -47,32 +47,98 @@ def restart_wazuh_function_without_exception(daemon=None):
 
     control_service('stop', daemon=daemon)
 
+
+"""Session fixtures"""
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_and_delete_resources_set():
+    """Create a resource list to track all resources created throughout test execution and deletes them upon completion
+
+    Returns
+    -------
+        None
+    """
+    # Create resource set
+    resources: set = set()
+
+    yield resources
+
+    # Delete all resources created during execution
+    for resource in resources:
+        try:
+            delete_resources(resource)
+        except ClientError as error:
+            logger.error({
+                "message": "Client error deleting resource",
+                "resource_name": resource,
+                "error": str(error)
+            })
+            raise
+
+        except Exception as error:
+            logger.error({
+                "message": "Broad error creating bucket",
+                "resource_name": resource,
+                "error": str(error)
+            })
+            raise
+
+    logger.info('All resources deleted')
+
+
 """S3 fixtures"""
 
 
-# @pytest.fixture()
-# def create_test_bucket(create_session_id: str, create_and_delete_resources_list: list, metadata: dict):
-#     """Create a bucket.
-#
-#     Parameters
-#     ----------
-#         create_session_id (str): Test session id.
-#         create_and_delete_resources_list (list): Resources list.
-#         metadata (dict): Bucket information.
-#
-#     Returns
-#     -------
-#         None
-#     """
-#     # Set variables from fixture
-#
-#
-#     # Get bucket information and add session id
-#     metadata['bucket_name'] += f"-{test_session_id}"
-#
+@pytest.fixture()
+def create_test_bucket(resources: set,
+                       metadata: dict):
+    """Create a bucket.
+
+    Parameters
+    ----------
+        uuid (str): Test session id.
+        resources_list (list): Resources list.
+        metadata (dict): Bucket information.
+
+    """
+    bucket_name = metadata["bucket_name"]
+    bucket_type = metadata["bucket_type"]
+
+    try:
+        # Create bucket
+        create_bucket(bucket_name=bucket_name)
+        logger.debug(f"Created new bucket: type {bucket_name}")
+
+        # Create resource dict
+        resource = {
+            "name": bucket_name,
+            "type": bucket_type
+        }
+        # Append created bucket to resource list
+        resources.add(resource)
+
+    except ClientError as error:
+        logger.error({
+            "message": "Client error creating bucket",
+            "bucket_name": bucket_name,
+            "bucket_type": bucket_type,
+            "error": str(error)
+        })
+        raise
+
+    except Exception as error:
+        logger.error({
+            "message": "Broad error creating bucket",
+            "bucket_name": bucket_name,
+            "bucket_type": bucket_type,
+            "error": str(error)
+        })
+        raise
+
 
 @pytest.fixture
-def upload_file_to_bucket(metadata):
+def upload_file_to_bucket(metadata: dict):
     """Upload a file to S3 bucket and delete after the test ends.
 
     Args:
@@ -122,7 +188,8 @@ def upload_file_to_bucket(metadata):
 
 
 @pytest.fixture()
-def create_test_log_group(create_session_id: str, create_and_delete_resources_list: list, metadata: dict):
+def create_test_log_group(resources: set,
+                          metadata: dict):
     """Create a bucket.
 
     Parameters
@@ -135,26 +202,19 @@ def create_test_log_group(create_session_id: str, create_and_delete_resources_li
     -------
         None
     """
-    # Set variables from fixture
-    test_session_id = create_session_id
-    resources_list = create_and_delete_resources_list
+    # Get log group name
+    log_group_name = metadata["log_group_name"]
 
-    # Get log group information and add session id
-    log_group_name = metadata["log_group_name"] + f"-{test_session_id}"
-
+    # Create resource dict
+    resource = {
+        "name": log_group_name
+    }
+    # Append created bucket to resource list
+    resources.add(resource)
     try:
         # Create log group
         create_log_group(log_group_name=log_group_name)
         logger.debug(f"Created log group: {log_group_name}")
-
-        # Create resource dict
-        resource = {
-            "type": "log_group",
-            "name": log_group_name
-        }
-
-        # Append created log group to resources list
-        resources_list.append(log_group_name)
 
     except ClientError as error:
         logger.error({

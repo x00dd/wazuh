@@ -32,8 +32,8 @@ configurator.configure_test(configuration_file='bucket_configuration_defaults.ya
                          zip(configurator.test_configuration_template, configurator.metadata),
                          ids=configurator.cases_ids)
 def test_bucket_defaults(
-        configuration, metadata, load_wazuh_basic_configuration, set_wazuh_configuration, clean_s3_cloudtrail_db,
-        configure_local_internal_options_function, truncate_monitored_files, restart_wazuh_function, file_monitoring,
+        configuration, metadata, create_test_bucket, load_wazuh_basic_configuration, set_wazuh_configuration,
+        clean_s3_cloudtrail_db, configure_local_internal_options_function, truncate_monitored_files, restart_wazuh_function, file_monitoring,
 
 ):
     """
