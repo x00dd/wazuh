@@ -28,33 +28,34 @@ class TestConfigurator:
 
     Attributes:
     - module (str): The name of the test module.
-    - configuration_path (str): The path to the configuration directory for the test module.
-    - test_cases_path (str): The path to the test cases directory for the test module.
     - metadata (list): Test metadata retrieved from the test cases.
-    - parameters (list): Test parameters retrieved from the test cases.
     - cases_ids (list): Identifiers for the test cases.
     - test_configuration_template (list): The loaded configuration template for the test module.
 
     """
 
     def __init__(self):
-        self.module = None
+        self._module = ""
         self._metadata: list = []
         self._cases_ids: list = []
-        self._test_configuration_template = None
+        self._test_configuration_template: list = []
         self._set_session_id()
 
     @property
     def module(self):
-        return self.module
+        return self._module
 
     @module.setter
     def module(self, test_module: str):
-        self.module = test_module
+        self._module = test_module
 
     @property
     def metadata(self):
         return self._metadata
+
+    @property
+    def test_configuration_template(self):
+        return self._test_configuration_template
 
     @property
     def cases_ids(self):
@@ -116,15 +117,19 @@ class TestConfigurator:
         - metadata (list): The metadata of the test.
         """
         # Add Suffix (_todelete) to alert a safe deletion of resource in case of errors.
-        suffix = self._session_id + '_todelete'
+        suffix = f"-{self._session_id}-todelete"
         for param, data in zip(parameters, self._metadata):
-            if param["RESOURCE_TYPE"] is "bucket":
-                param["BUCKET_NAME"] += suffix
-                data["bucket_name"] += suffix
+            try:
+                if param["RESOURCE_TYPE"] == "bucket":
+                    param["BUCKET_NAME"] += suffix
+                    data["bucket_name"] += suffix
 
-            elif param["RESOURCE_TYPE"] is "log_stream":
-                param["LOG_STREAM_NAME"] += suffix
-                data["LOG_STREAM_NAME"] += suffix
+                elif param["RESOURCE_TYPE"] == "log_stream":
+                    param["LOG_STREAM_NAME"] += suffix
+                    data["LOG_STREAM_NAME"] += suffix
+            except KeyError:
+                raise
+
 
 
 # Instantiate configurator

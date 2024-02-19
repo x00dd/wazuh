@@ -23,6 +23,7 @@
 - name: config_defaults
   description: Config default configurations
   configuration_parameters:
+    RESOURCE_TYPE: bucket
     BUCKET_TYPE: config
     BUCKET_NAME: wazuh-config-integration-tests
   metadata:
