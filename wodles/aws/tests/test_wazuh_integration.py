@@ -144,7 +144,7 @@ def test_wazuh_integration_get_client_authentication(access_key, secret_key, pro
         expected_conn_args['region_name'] = region if region in constants.DEFAULT_AWS_INTEGRATION_GOV_REGIONS else None
 
     with patch('wazuh_integration.utils.find_wazuh_path', return_value=constants.TEST_WAZUH_PATH), \
-            patch('wazuh_integration.utils.get_wazuh_version', return_value=constants.WAZUH_VERSION), \
+            patch('wazuh_integration.utils.get_wazuh_version', return_value=constants.TEST_HARDCODED_WAZUH_VERSION), \
             patch('wazuh_integration.boto3.Session') as mock_boto:
         wazuh_integration.WazuhIntegration(**kwargs)
         mock_boto.assert_called_with(**expected_conn_args)
@@ -190,7 +190,7 @@ def test_wazuh_integration_get_client(iam_role_arn, service_name, external_id):
     mock_sts_client.assume_role.return_value = sts_role_assumption
 
     with patch('wazuh_integration.utils.find_wazuh_path', return_value=constants.TEST_WAZUH_PATH), \
-            patch('wazuh_integration.utils.get_wazuh_version', return_value=constants.WAZUH_VERSION), \
+            patch('wazuh_integration.utils.get_wazuh_version', return_value=constants.TEST_HARDCODED_WAZUH_VERSION), \
             patch('wazuh_integration.boto3.Session', side_effect=[mock_boto_session, mock_sts_session]) as mock_session:
         instance = wazuh_integration.WazuhIntegration(**kwargs)
 
@@ -216,7 +216,7 @@ def test_wazuh_integration_get_client_handles_exceptions_on_botocore_error():
                                                                                              'operation')
 
     with patch('wazuh_integration.utils.find_wazuh_path', return_value=constants.TEST_WAZUH_PATH), \
-            patch('wazuh_integration.utils.get_wazuh_version', return_value=constants.WAZUH_VERSION), \
+            patch('wazuh_integration.utils.get_wazuh_version', return_value=constants.TEST_HARDCODED_WAZUH_VERSION), \
             patch('wazuh_integration.boto3.Session', return_value=mock_boto_session):
         with pytest.raises(SystemExit) as e:
             wazuh_integration.WazuhIntegration(**utils.get_wazuh_integration_parameters())
@@ -492,11 +492,11 @@ def test_wazuh_aws_database_check_metadata_version_existing_table(custom_databas
     instance.db_connector = custom_database
     instance.db_cursor = instance.db_connector.cursor()
     old_metadata_value = utils.database_execute_query(custom_database, instance.sql_get_metadata_version)
-    assert old_metadata_value != constants.WAZUH_VERSION
+    assert old_metadata_value != constants.TEST_HARDCODED_WAZUH_VERSION
 
     instance.check_metadata_version()
     new_metadata_value = utils.database_execute_query(custom_database, instance.sql_get_metadata_version)
-    assert new_metadata_value == constants.WAZUH_VERSION
+    assert new_metadata_value == constants.TEST_HARDCODED_WAZUH_VERSION
 
 
 def test_wazuh_aws_database_check_metadata_version_no_table(custom_database):
@@ -506,7 +506,7 @@ def test_wazuh_aws_database_check_metadata_version_no_table(custom_database):
     instance.db_cursor = instance.db_connector.cursor()
     instance.check_metadata_version()
     new_metadata_value = utils.database_execute_query(custom_database, instance.sql_get_metadata_version)
-    assert new_metadata_value == constants.WAZUH_VERSION
+    assert new_metadata_value == constants.TEST_HARDCODED_WAZUH_VERSION
 
 
 @pytest.mark.parametrize('table_exists', [True, False, sqlite3.Error])

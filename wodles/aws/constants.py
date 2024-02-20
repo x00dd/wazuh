@@ -107,7 +107,7 @@ THROTTLING_EXCEPTION_ERROR_MESSAGE = "The '{name}' request was denied due to req
                                      f"the Retry configuration to avoid it: '{RETRY_CONFIGURATION_URL}'"
 
 # TESTS VALUES
-WAZUH_VERSION = "4.5.0"
+TEST_HARDCODED_WAZUH_VERSION = "4.5.0"
 TEST_TABLE_NAME = "cloudtrail"
 TEST_SERVICE_NAME = "s3"
 TEST_ACCESS_KEY = "test_access_key"
