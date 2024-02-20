@@ -76,8 +76,6 @@ AWS_AUTH_DEPRECATED_MESSAGE = 'The {name} authentication parameter was deprecate
 
 
 # ERROR CODES
-INVALID_CREDENTIALS_ERROR_CODE = "SignatureDoesNotMatch"
-INVALID_REQUEST_TIME_ERROR_CODE = "RequestTimeTooSkewed"
 THROTTLING_EXCEPTION_ERROR_CODE = "ThrottlingException"
 UNKNOWN_ERROR_CODE = 1
 INVALID_CREDENTIALS_ERROR_CODE = 3
@@ -100,6 +98,7 @@ INVALID_REGION_ERROR_CODE = 22
 
 
 # ERROR MESSAGES
+UNKNOWN_ERROR_MESSAGE = "Unexpected error: '{error}'."
 INVALID_CREDENTIALS_ERROR_MESSAGE = "Invalid credentials to access S3 Bucket"
 INVALID_REQUEST_TIME_ERROR_MESSAGE = "The server datetime and datetime of the AWS environment differ"
 THROTTLING_EXCEPTION_ERROR_MESSAGE = "The '{name}' request was denied due to request throttling. " \
