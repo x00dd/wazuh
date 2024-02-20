@@ -1,7 +1,6 @@
 - name: inspector_defaults
   description: Inspector default configurations
   configuration_parameters:
-    RESOURCE_TYPE: log_group
     SERVICE_TYPE: inspector
     LOG_GROUP_NAME: wazuh-inspector-integration-tests
   metadata:
