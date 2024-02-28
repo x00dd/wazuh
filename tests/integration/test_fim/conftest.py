@@ -25,8 +25,13 @@ from wazuh_testing.utils.services import get_service
 def file_to_monitor(test_metadata: dict) -> Any:
     path = test_metadata.get('file_to_monitor')
     path = os.path.abspath(path)
+    data = test_metadata.setdefault('content', '')
+    isBinary = test_metadata.setdefault('binary_content', False)
 
-    file.write_file(path)
+    if isBinary:
+        data = data.encode('utf-8')
+
+    file.write_file(path, data)
 
     yield path
 
@@ -38,7 +43,7 @@ def folder_to_monitor(test_metadata: dict) -> None:
     path = test_metadata.get('folder_to_monitor')
     path = os.path.abspath(path)
 
-    file.create_folder(path)
+    file.recursive_directory_creation(path)
 
     yield path
 
