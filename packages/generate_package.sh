@@ -51,6 +51,7 @@ build_pkg() {
 
     # Copy the necessary files
     cp ${CURRENT_PATH}/build.sh ${DOCKERFILE_PATH}
+    cp ${CURRENT_PATH}/${PACKAGE_FORMAT}s/utils/* ${DOCKERFILE_PATH}
 
     # Create an optional parameter to share the local source code as a volume
     if [ ! -z "${LOCAL_SOURCE_CODE}" ]; then
@@ -67,7 +68,7 @@ build_pkg() {
     echo docker run -t --rm -v ${OUTDIR}:/var/local/wazuh:Z \
         -v ${CHECKSUMDIR}:/var/local/checksum:Z \
         -v ${LOCAL_SPECS}:/specs:Z \
-        -v build.sh:/usr/local/bin/build_package
+        -v $(pwd)/build.sh:/usr/local/bin/build_package \
         ${CUSTOM_CODE_VOL} \
         ${CONTAINER_NAME}:${DOCKER_TAG} ${TARGET} ${BRANCH} ${ARCHITECTURE} \
         ${REVISION} ${JOBS} ${INSTALLATION_PATH} ${DEBUG} \
@@ -80,7 +81,6 @@ build_pkg() {
 }
 
 build() {
-
     if [[ "${ARCHITECTURE}" == "x86_64" ]] || [[ "${ARCHITECTURE}" == "amd64" ]]; then
             ARCH="amd64"
     elif [[ "${ARCHITECTURE}" == "aarch64" ]] || [[ "${ARCHITECTURE}" == "arm64" ]]; then
@@ -89,9 +89,7 @@ build() {
         ARCH="armhf"
     fi
 
-
     build_pkg  || return 1
-
 
     return 0
 }
